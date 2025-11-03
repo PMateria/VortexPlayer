@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>IPTV Player</title>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    :root{
+      --bg:#0f1115;
+      --panel:#161a22;
+      --panel-2:#1c2230;
+      --text:#e6eef7;
+      --muted:#8aa2b7;
+      --brand:#00aaff;
+      --brand-2:#0091dd;
+      --chip:#223044;
+      --card:#18202c;
+      --shadow:0 10px 30px rgba(0,0,0,.35)
+    }
+    html,body{height:100%}
+    body{
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Apple Color Emoji","Segoe UI Emoji";
+      background: linear-gradient(180deg, #0b0d12 0%, #0f1115 100%);
+      color:var(--text);
+      overflow:hidden
+    }
+
+    /* Top bar */
+    .topbar{
+      display:flex;gap:10px;align-items:center;
+      background:var(--panel);
+      border-bottom:1px solid #1f2633;
+      padding:12px 16px;position:sticky;top:0;z-index:30
+    }
+
+    .tabs{display:flex;gap:8px;margin-right:12px}
+    .tab{
+      padding:10px 14px;border:none;border-radius:10px;
+      background:transparent;color:var(--muted);cursor:pointer;
+      transition:all .2s
+    }
+    .tab.active{background:var(--brand);color:#fff;box-shadow:var(--shadow)}
+    .tab:hover{background:#1a2230;color:#cfe3f6}
+
+    /* Search / URL bar */
+    .searchbar{display:flex;gap:10px;flex:1}
+    .searchbar input{
+      flex:1;padding:12px 14px;border-radius:12px;
+      background:var(--panel-2);border:1px solid #253048;color:var(--text);
+      outline:none;transition:border-color .15s
+    }
+    .searchbar input::placeholder{color:#7f95ab}
+    .btn{
+      padding:12px 16px;border:none;border-radius:12px;cursor:pointer;
+      background:var(--brand);color:#fff;font-weight:600;box-shadow:var(--shadow)
+    }
+    .btn:hover{background:var(--brand-2)}
+
+    /* ---- Selettore sezioni Live / Film / Serie ---- */
+    
+    .sections{
+      display:flex; gap:8px; margin-left:10px;
+    }
+    .seg-btn{
+      padding:10px 12px; border:1px solid #223044; border-radius:10px;
+      background:#131a26; color:#cfe3f6; cursor:pointer; transition:all .15s;
+      white-space:nowrap;
+    }
+    .seg-btn:hover{ background:#1a2331; border-color:#2c4666 }
+    .seg-btn.active{ background:#0f3a57; border-color:#206ca0; color:#fff; box-shadow:var(--shadow) }
+    @media (max-width: 980px){
+      .sections{ display:none; } /* su schermi stretti nasconde il selettore per lasciare spazio alla barra */
+    }
+
+    /* Views */
+    .view{height:calc(100vh - 58px);overflow:auto;padding:18px}
+    .hidden{display:none!important}
+
+    /* Player card */
+    #playerSection{
+      background:var(--panel);border:1px solid #212a3a;border-radius:16px;
+      padding:14px;margin-bottom:18px;box-shadow:var(--shadow)
+    }
+    #currentChannel{font-size:18px;color:#bfe7ff;margin:6px 0 10px 4px}
+    #video{width:100%;max-height:66vh;background:#000;border-radius:12px}
+
+    /* KPI line over grid */
+    #filterCounter{margin:6px 2px 10px 2px;color:var(--muted);font-size:12px}
+
+    /* Grid */
+    #channels{
+      display:grid;gap:14px;
+      grid-template-columns:repeat(auto-fill,minmax(240px,1fr));
+    }
+    .card{
+      background:var(--card);border:1px solid #243248;border-radius:14px;
+      padding:14px;transition:transform .15s, border-color .15s, box-shadow .15s;
+      box-shadow:0 6px 20px rgba(0,0,0,.25)
+    }
+    .card:hover{transform:translateY(-4px);border-color:#335176}
+    .card h3{color:#cfe3f6;font-size:15px;margin-bottom:10px;min-height:36px;line-height:1.2}
+    .meta{display:flex;align-items:center;gap:8px;margin-bottom:10px;height:26px}
+    .meta img{height:24px;object-fit:contain;filter:drop-shadow(0 4px 10px rgba(0,0,0,.35))}
+    .chip{
+      display:inline-flex;align-items:center;gap:6px;padding:6px 8px;border-radius:999px;
+      background:var(--chip);color:#b7cae0;font-size:12px;border:1px solid #2a3b55
+    }
+    .card button{
+      width:100%;padding:10px 12px;border:none;border-radius:10px;
+      background:linear-gradient(180deg, #00aaff, #0088cc);color:#fff;font-weight:600;cursor:pointer
+    }
+    .card button:hover{filter:brightness(1.05)}
+
+    /* Drawer (catalogo categorie) */
+    .drawer-backdrop{
+      position:fixed;inset:0;background:rgba(0,0,0,.45);
+      opacity:0;pointer-events:none;transition:opacity .2s;z-index:60
+    }
+    .drawer{position:fixed;left:0;top:0;height:100vh;width:320px;max-width:86vw;
+      background:linear-gradient(180deg,#11161f,#0f141c);
+      border-right:1px solid #223044;transform:translateX(-100%);
+      transition:transform .25s ease;z-index:70;box-shadow:var(--shadow)
+    }
+    .drawer.open{transform:translateX(0)}
+    .drawer-backdrop.show{opacity:1;pointer-events:auto}
+    .drawer-header{padding:16px;border-bottom:1px solid #1f2837}
+    .drawer-title{font-weight:700;color:#cfe3f6}
+    .drawer-search{padding:12px}
+    .drawer-search input{
+      width:100%;padding:10px 12px;border-radius:10px;background:#182233;
+      border:1px solid #27344a;color:#dce9f8;outline:none
+    }
+    .cat-list{padding:8px 8px 14px 8px;overflow:auto;height:calc(100vh - 145px)}
+    .cat-item{
+      display:flex;justify-content:space-between;align-items:center;
+      padding:10px 12px;margin:6px;border-radius:10px;background:#141b26;
+      border:1px solid #223044;color:#cfe3f6;cursor:pointer;transition:all .15s
+    }
+    .cat-item small{color:#8fb0ce}
+    .cat-item:hover{background:#1a2331;border-color:#2c4666}
+    .cat-item.active{background:#0f3a57;border-color:#206ca0}
+
+    /* FAB (toggle catalogo) */
+    .fab{
+      position:fixed;left:18px;bottom:18px;z-index:80;border:none;border-radius:999px;
+      background:linear-gradient(180deg,#00aaff,#0088cc);color:#fff;
+      padding:12px 16px;font-weight:700;cursor:pointer;box-shadow:var(--shadow)
+    }
+
+    /* Settings form */
+    .setting-group{margin-bottom:16px}
+    .setting-group label{display:block;margin-bottom:8px;color:#bfe7ff}
+    input[type="text"]{
+      width:100%;padding:12px;border-radius:12px;background:var(--panel-2);
+      border:1px solid #253048;color:#e6eef7
+    }
+    #saveSettings{margin-top:8px}
+  </style>
+  
+</head>
+<body>
+  <!-- Topbar -->
+  <div class="topbar">
+    <div class="tabs">
+      <button class="tab active" id="tabPlayer">Player</button>
+      <button class="tab" id="tabSettings">Impostazioni</button>
+    </div>
+
+    <div class="searchbar" style="max-width:1100px">
+      <input id="playlistUrl" type="text" placeholder="Cerca canale… oppure incolla URL M3U/M3U8 e premi Invio" />
+      <button class="btn" id="btnLoad">Carica playlist</button>
+    </div>
+
+    <!-- Selettore sezioni -->
+    <div class="sections">
+      <button id="segLive"   class="seg-btn active" title="Canali Live">Live</button>
+      <button id="segFilm"   class="seg-btn"        title="Film on-demand">Film</button>
+      <button id="segSeries" class="seg-btn"        title="Serie TV on-demand">Serie TV</button>
+
+    </div>
+  </div>
+
+  <!-- Drawer categorie -->
+  <div class="drawer" id="drawer">
+    <div class="drawer-header">
+      <div class="drawer-title">Categorie</div>
+    </div>
+    <div class="drawer-search">
+      <input type="text" id="catSearch" placeholder="Cerca categoria…" />
+    </div>
+    <div class="cat-list" id="catList"></div>
+  </div>
+  <div class="drawer-backdrop" id="drawerBackdrop"></div>
+
+  <!-- Bottone flottante -->
+  <button class="fab" id="openCatalog">☰ Canali</button>
+
+  <!-- View: Player -->
+  <div id="viewPlayer" class="view">
+   <!-- Overlay Player -->
+<div id="playerOverlay" class="overlay hidden">
+  <div class="overlay-backdrop" id="overlayBackdrop"></div>
+  <div class="overlay-card" id="overlayCard">
+    <div class="overlay-header">
+      <button id="btnBack" class="icon-btn" title="Torna alla lista" aria-label="Torna alla lista">
+        <!-- freccia sinistra -->
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+          <path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+      <h2 id="currentChannel" class="overlay-title">-</h2>
+      <div class="grow"></div>
+      <button id="btnFs" class="icon-btn" title="Schermo intero" aria-label="Schermo intero">
+        <!-- icona fullscreen -->
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+          <path d="M7 3H3v4M17 3h4v4M7 21H3v-4M21 21h-4v-4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+      </button>
+    </div>
+    <video id="video" playsinline></video>
+  </div>
+</div>
+
+
+    <div id="filterCounter"></div>
+    <div id="channels"></div>
+  </div>
+
+  <!-- View: Settings -->
+  <div id="viewSettings" class="view hidden">
+    <div class="setting-group">
+      <label>URL Playlist predefinita</label>
+      <input type="text" id="settingPlaylist" placeholder="http://...">
+    </div>
+    <div class="setting-group">
+      <label>URL Admin (opzionale)</label>
+      <input type="text" id="settingAdmin" placeholder="http://...">
+    </div>
+
+    <!-- Pulsanti impostazioni -->
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <button id="saveSettings" class="btn">Salva Impostazioni</button>
+      <!-- NUOVO: svuota memoria -->
+      <button id="btnClearMemory" class="btn" title="Svuota cache server, sessioni HLS e cache locale">
+        Svuota memoria
+      </button>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+  <script src="renderer.js"></script>
+</body>
+</html>

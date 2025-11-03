@@ -1,0 +1,43 @@
+{
+  "name": "iptv-player",
+  "version": "1.1.0",
+  "main": "main.js",
+  "description": "IPTV Player - desktop executable (Electron) with embedded proxy + ffmpeg remux to HLS",
+  "author": "you",
+  "license": "MIT",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder -mwl",
+    "postinstall": "echo postinstall ok"
+  },
+  "dependencies": {
+    "electron-store": "^8.2.0",
+    "express": "^4.19.2",
+    "ffmpeg-static": "^5.2.0",
+    "m3u8-parser": "^7.1.0"
+  },
+  "devDependencies": {
+    "electron": "^30.0.0",
+    "electron-builder": "^24.13.3"
+  },
+  "build": {
+    "appId": "com.yourcompany.iptvplayer",
+    "productName": "IPTV Player",
+    "files": [
+      "**/*",
+      "!admin/**"
+    ],
+    "directories": {
+      "buildResources": "build"
+    },
+    "win": {
+      "target": "nsis"
+    },
+    "mac": {
+      "target": "dmg"
+    },
+    "linux": {
+      "target": "AppImage"
+    }
+  }
+}
