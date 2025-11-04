@@ -1,4 +1,4 @@
-# IPTV Player (Electron) con Remux ffmpeg → HLS
+# Vortex Player (Electron) con Remux ffmpeg → HLS
 
 ## Funzionalità
 - Eseguibile desktop (Win/macOS/Linux) con UI integrata (Electron).
